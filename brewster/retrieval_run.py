@@ -10,7 +10,7 @@ import sys
 import pickle
 from builtins import str
 from builtins import range
-import utils
+from brewster import utils
 from schwimmbad import MPIPool
 # import pymultinest as mn
 from brewster import test_module
