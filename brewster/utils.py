@@ -513,13 +513,14 @@ class Retrieval_params:
         String representation of the class instance.
     """
 
-    def __init__(self, samplemode,chemeq=None, gaslist=None, gastype_list=None,fwhm=None,do_fudge=1,ptype=None,do_clouds=1,npatches=None,cloudname=None,cloudpatch_index=None,particle_dis=None):
+    def __init__(self, samplemode,chemeq=None, gaslist=None, gastype_list=None,fwhm=None,do_fudge=1,ndata=1,ptype=None,do_clouds=1,npatches=None,cloudname=None,cloudpatch_index=None,particle_dis=None):
         self.samplemode = samplemode
         self.chemeq = chemeq
         self.gaslist = gaslist
         self.gastype_list = gastype_list
         self.fwhm = fwhm
         self.do_fudge = do_fudge
+        self.ndata = ndata
         self.ptype = ptype
         self.do_clouds = do_clouds
         self.cloudname = cloudname
@@ -1116,28 +1117,28 @@ class Retrieval_params:
 
             del dictionary['params']['scale1']
             del dictionary['params']['scale2']
-            ndata=1
+            self.ndata=1
 
         if self.fwhm in [-2] and self.do_fudge==1:
             del dictionary['params']['scale1']
-            ndata=2
+            self.ndata=2
 
         if self.fwhm in [-1, -3, -4] and self.do_fudge==1:
-            ndata=3
+            self.ndata=3
 
         if self.fwhm in [555, 888] and self.do_fudge==1:
             del dictionary['params']['scale1']
             del dictionary['params']['scale2']
-            ndata=2
+            self.ndata=2
 
         if self.fwhm in [777] and self.do_fudge==1:
             del dictionary['params']['scale1']
             del dictionary['params']['scale2']
-            ndata=0
+            self.ndata=0
 
         # Add tolerance parameters after 'dlambda'
         if self.do_fudge==1:
-            for i in range(ndata):
+            for i in range(self.ndata):
                 dictionary['params']["tolerance_parameter_%d" % (i+1)] = {
                     'initialization': None,
                     'distribution': ['customized', 0],
