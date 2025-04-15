@@ -5,7 +5,7 @@ import emcee
 from rotBroadInt import rot_int_cmj as rotBroad
 
 
-def get_endchain(runname,fin,results_path='./'):
+def get_endchain(runname, fin, results_path='./'):
     if (fin == 1):
         pic = results_path+runname+".pk1"
         sampler = pickle_load(pic)
@@ -15,39 +15,34 @@ def get_endchain(runname,fin,results_path='./'):
         flatprobs = sampler.lnprobability[:,:].reshape((-1))
         max_like = flatprobs[np.argmax(flatprobs)]
         print("maximum likelihood = ", max_like)
-        flatendchain = sampler.chain[:,niter-2000:,:].reshape((-1,ndim))
+        flatendchain = sampler.chain[:, -2000:, :].reshape((-1,ndim))
         if (emcee.__version__ == '3.0rc2'):
-            flatendprobs = sampler.lnprobability[niter-2000:,:].reshape((-1))
+            flatendprobs = sampler.lnprobability[-2000:, :].reshape((-1))
         else:
-            flatendprobs = sampler.lnprobability[:, niter-2000:].reshape((-1))
-        theta_max_end = flatendchain[np.argmax(flatendprobs)]
+            flatendprobs = sampler.lnprobability[:, -2000:].reshape((-1))
         max_end_like = np.amax(flatendprobs)
         print("maximum likelihood in final 2K iterations= ", max_end_like)
-        print("Mean autocorrelation time: {0:.3f} steps"
-              .format(np.mean(sampler.get_autocorr_time(discard=0,c=10,quiet=True))))
+        print(f"Mean autocorrelation time: {np.mean(sampler.get_autocorr_time(discard=0,c=10,quiet=True)):.3f} steps")
 
     elif(fin ==0):
         pic = results_path+runname+"_snapshot.pic"
         chain,probs = pickle_load(pic)
         nwalkers = chain.shape[0]
-        ntot = chain.shape[1]
         ndim = chain.shape[2]
         niter = int(np.count_nonzero(chain) / (nwalkers*ndim))
-        flatprobs = probs[:,:].reshape((-1))
+        flatprobs = probs.reshape((-1))
         max_like = flatprobs[np.argmax(probs)]
         print("Unfinished symphony. Number of successful iterations = ", niter)
         print("maximum likelihood = ", max_like)
-        flatendchain = chain[:,(niter-2000):niter,:].reshape((-1,ndim))
-        if (emcee.__version__ == '3.0rc2'):
-            flatendprobs = probs[niter-2000:,:].reshape((-1))
+        flatendchain = chain[:, -2000:, :].reshape((-1,ndim)) 
+        if (emcee.__version__ == '3.0rc2'): 
+            flatendprobs = probs[-2000:, :].reshape((-1))
         else:
-            flatendprobs = probs[:, niter-2000:].reshape((-1))
-        theta_max_end = flatendchain[np.argmax(flatendprobs)]
+            flatendprobs = probs[:, -2000:].reshape((-1))
         max_end_like = np.amax(flatendprobs)
         print("maximum likelihood in final 2K iterations= ", max_end_like)
     else:
         print("File extension not recognised")
-        stop
         
     return flatendchain, flatendprobs,ndim
 
