@@ -4,6 +4,7 @@
 import numpy as np
 import scipy as sp
 from scipy import interpolate
+from scipy.ndimage import gaussian_filter1d
 from astropy.convolution import convolve, Gaussian1DKernel
 
 
@@ -41,34 +42,50 @@ def set_prof(proftype, coarsePress,press,intemp):
         
                     
     elif (proftype == 2):
-        # unpact the parameters
+        Np = press.size
+
+        # Assign parameters 
         beta = 0.5
         P0 = press[0]
-        #  We can either have T0 or T3 as a parameter. We're taking T3
-        a1, a2, logP1,logP3,T3 = intemp[0:5]
-
-        P1 = 10.**logP1
-        P3 = 10.**logP3
-
-
-        # set T1 from T3
-        T1 = T3 - (np.log(P3/P1) / a2)**(1/beta)
-    
-        # Set T0 from T1
-        T0 = T1 - ((np.log(P1/P0) / a1)**(1/beta))
-
-         
         
-        for i in range(0,press.size):
-            if (press[i] < P1):
-                temp[i] = T0 + (np.log(press[i] / P0) / a1)**(1/beta)
-            elif (press[i] >= P1 and press[i] < P3):
-                temp[i] = T1 + (np.log(press[i] / P1) / a2)**(1/beta)
-            elif (press[i] >= P3):
-                temp[i] = T3
+        # add a case for when intemp is 1D
+        if intemp.ndim == 1:
+            N = 1
+            a1, a2, logP1, logP3, T3 = intemp[0:5]
+        else:
+            N = intemp.shape[0]
+            a1 = intemp[:, 0] 
+            a2 = intemp[:, 1]  
+            logP1 = intemp[:, 2]  
+            logP3 = intemp[:, 3]  
+            T3 = intemp[:, 4] 
 
-        # then smooth with 5 layer box car
-        temp1 = convolve(temp,Gaussian1DKernel(5),boundary='extend')
+        P1 = 10.**logP1 
+        P3 = 10.**logP3 
+
+        # Calculate T1 and T0
+        T1 = T3 - (np.log(P3/P1) / a2)**(1 / beta) 
+        T0 = T1 - ((np.log(P1/P0) / a1)**(1 / beta))
+        
+        # Reshape parameters to allow broadcasting with press
+        # press: (D,) -> (1, D)
+        # T0, T1, T3, etc.: (N,) -> (N, D)
+        press_reshaped = np.tile(press, (N, 1))
+        T0, T1, T3, P1, P3, a1, a2 = [np.tile(param, (Np, 1)).T for param in [T0, T1, T3, P1, P3, a1, a2]] 
+
+        # Create masks 
+        mask1 = press_reshaped < P1
+        mask2 = (press_reshaped >= P1) & (press_reshaped < P3)
+        mask3 = press_reshaped >= P3
+
+        # Calculate temperature profiles
+        temp = np.zeros((N, Np))
+        temp[mask1] = T0[mask1] + (np.log(press_reshaped[mask1] / P0) / a1[mask1])**(1 / beta)
+        temp[mask2] = T1[mask2] + (np.log(press_reshaped[mask2] / P1[mask2]) / a2[mask2])**(1/beta)
+        temp[mask3] = T3[mask3]
+
+        # Then smooth with a simple gaussian filter
+        temp1 = gaussian_filter1d(temp, sigma=5, axis=1, mode='nearest')
  
     elif (proftype == 3):
         # unpact the parameters
